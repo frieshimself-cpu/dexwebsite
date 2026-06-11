@@ -3,6 +3,8 @@ import {
   Keypair,
   PublicKey,
   LAMPORTS_PER_SOL,
+  SystemProgram,
+  Transaction,
   type ParsedTransactionWithMeta,
 } from "@solana/web3.js";
 import { CONFIG } from "./config.ts";
@@ -118,6 +120,26 @@ export async function quotePayment(usd: number, label: string): Promise<PaymentQ
   const solanaPayUrl = `solana:${CONFIG.receiveWallet}?${params.toString()}`;
 
   return { amountLamports: lamports, amountSol, reference, solanaPayUrl };
+}
+
+/**
+ * Build an unsigned transfer transaction for browser-extension wallets
+ * (Phantom/Solflare). Includes the order's reference key so the payment
+ * poller can also find it independently.
+ */
+export async function buildPaymentTx(order: OrderRow, payerAddress: string): Promise<string> {
+  const payer = new PublicKey(payerAddress);
+  const ix = SystemProgram.transfer({
+    fromPubkey: payer,
+    toPubkey: recipient,
+    lamports: order.amount_lamports,
+  });
+  ix.keys.push({ pubkey: new PublicKey(order.reference), isSigner: false, isWritable: false });
+
+  const tx = new Transaction().add(ix);
+  tx.feePayer = payer;
+  tx.recentBlockhash = (await connection.getLatestBlockhash("confirmed")).blockhash;
+  return tx.serialize({ requireAllSignatures: false, verifySignatures: false }).toString("base64");
 }
 
 /* ------------------------------ payment verification --------------------------- */

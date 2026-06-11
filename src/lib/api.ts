@@ -39,6 +39,7 @@ export const api = {
     adLinkUrl?: string;
   }) => post<{ order: OrderPublic }>("/api/orders", body),
   order: (id: string) => get<{ order: OrderPublic }>(`/api/orders/${id}`),
+  payTx: (id: string, payer: string) => post<{ tx: string }>(`/api/orders/${id}/paytx`, { payer }),
   verifyOrder: (id: string, signature: string) =>
     post<{ order: OrderPublic }>(`/api/orders/${id}/verify`, { signature }),
 };

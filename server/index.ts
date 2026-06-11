@@ -16,7 +16,14 @@ import {
   getPaidTotals,
   type OrderRow,
 } from "./db.ts";
-import { getSolPriceUsd, quotePayment, pollPayments, quickCheckOrder, verifyOrderBySignature } from "./solana.ts";
+import {
+  getSolPriceUsd,
+  quotePayment,
+  pollPayments,
+  quickCheckOrder,
+  verifyOrderBySignature,
+  buildPaymentTx,
+} from "./solana.ts";
 import { getTrending, lookupToken } from "./marketdata.ts";
 import type { AdminOverview, OrderPublic, SiteConfig } from "../shared/types.ts";
 
@@ -226,6 +233,21 @@ app.get("/api/orders/:id", async (req, res) => {
   }
   const fresh = getOrder(order.id)!;
   res.json({ order: toPublicOrder(fresh) });
+});
+
+// Unsigned transfer tx for browser-extension wallets (one-click pay).
+app.post("/api/orders/:id/paytx", rateLimit(15, 60_000), async (req, res) => {
+  const order = getOrder(req.params.id);
+  if (!order) return res.status(404).json({ error: "Order not found" });
+  if (order.status === "paid") return res.status(400).json({ error: "Already paid" });
+  if (!isSolanaAddress(req.body?.payer)) return res.status(400).json({ error: "Invalid payer address" });
+  try {
+    const tx = await buildPaymentTx(order, req.body.payer);
+    res.json({ tx });
+  } catch (e) {
+    console.error("[paytx] failed:", e);
+    res.status(503).json({ error: "Couldn't prepare the transaction — scan the QR instead." });
+  }
 });
 
 app.post("/api/orders/:id/verify", rateLimit(12, 60_000), async (req, res) => {

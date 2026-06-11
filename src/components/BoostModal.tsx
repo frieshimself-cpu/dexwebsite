@@ -66,6 +66,7 @@ export default function BoostModal() {
   const [manualOpen, setManualOpen] = useState(false);
   const [signature, setSignature] = useState("");
   const [verifying, setVerifying] = useState(false);
+  const [walletPaying, setWalletPaying] = useState(false);
   const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
@@ -173,6 +174,67 @@ export default function BoostModal() {
       setCreating(false);
     }
   }, [canSubmit, modal.mode, ca, packageId, adDays, adImageUrl, adLinkUrl]);
+
+  /** One-click pay via a browser-extension wallet (Phantom / Solflare). */
+  const payWithWallet = async () => {
+    if (!order) return;
+    setError("");
+    const w = window as any;
+    const provider = w.phantom?.solana ?? w.solana ?? w.solflare;
+    if (!provider) {
+      setError(
+        "No Solana wallet extension found in this browser — install Phantom, or scan the QR with your phone wallet."
+      );
+      return;
+    }
+    setWalletPaying(true);
+    try {
+      await provider.connect();
+      const payer: string = provider.publicKey?.toBase58?.() ?? String(provider.publicKey ?? "");
+      if (!payer) throw new Error("Wallet didn't share an address");
+
+      const { tx: txB64 } = await api.payTx(order.id, payer);
+      const web3 = await import("@solana/web3.js");
+      const { Buffer } = await import("buffer");
+      if (!w.Buffer) w.Buffer = Buffer;
+      const tx = web3.Transaction.from(Uint8Array.from(atob(txB64), (c) => c.charCodeAt(0)));
+
+      const { signature: sig } = await provider.signAndSendTransaction(tx);
+
+      // wait for confirmation: verify directly by signature (the reference
+      // poller is also watching in parallel)
+      for (let i = 0; i < 20; i++) {
+        await new Promise((r) => setTimeout(r, 4000));
+        try {
+          const { order: fresh } = await api.verifyOrder(order.id, sig);
+          if (fresh.status === "paid") {
+            setOrder(fresh);
+            setStep("done");
+            return;
+          }
+        } catch {
+          // tx not confirmed yet — keep waiting
+        }
+        try {
+          const { order: fresh } = await api.order(order.id);
+          if (fresh.status === "paid") {
+            setOrder(fresh);
+            setStep("done");
+            return;
+          }
+        } catch {
+          // transient — keep waiting
+        }
+      }
+      setError("Payment sent — waiting on network confirmation. This screen updates automatically.");
+    } catch (e) {
+      const msg = String(e instanceof Error ? e.message : e);
+      if (/reject|cancel|denied|declin/i.test(msg)) setError("Transaction cancelled in the wallet.");
+      else setError(msg.slice(0, 180) || "Wallet payment failed — try the QR instead.");
+    } finally {
+      setWalletPaying(false);
+    }
+  };
 
   const verifyManually = async () => {
     if (!order || !signature.trim()) return;
@@ -388,15 +450,35 @@ export default function BoostModal() {
                   <CopyChip value={solAmount(order.payment.amountSol)} label="copy" />
                 </div>
 
-                <div className="mx-auto mt-5 w-fit rounded-2xl bg-white p-3">
-                  <QRCodeSVG value={order.payment.solanaPayUrl} size={196} marginSize={1} />
+                {/* one-click pay (desktop extension or wallet in-app browser) */}
+                <button
+                  onClick={payWithWallet}
+                  disabled={walletPaying || expired}
+                  className="btn-primary mt-5 w-full py-3.5 text-base disabled:opacity-40"
+                >
+                  {walletPaying ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin" /> Confirm in your wallet…
+                    </>
+                  ) : (
+                    <>
+                      <Wallet className="h-5 w-5" /> Pay with Phantom / Solflare
+                    </>
+                  )}
+                </button>
+
+                <div className="mt-5 flex items-center gap-3 text-xs uppercase tracking-wider text-muted-foreground">
+                  <span className="h-px flex-1 bg-border" />
+                  or scan with your phone
+                  <span className="h-px flex-1 bg-border" />
+                </div>
+
+                <div className="mx-auto mt-4 w-fit rounded-2xl bg-white p-3">
+                  <QRCodeSVG value={order.payment.solanaPayUrl} size={180} marginSize={1} />
                 </div>
                 <p className="mt-2 text-xs text-muted-foreground">
-                  Scan with Phantom / Solflare / any Solana Pay wallet
+                  Works with Phantom, Solflare and any Solana Pay wallet
                 </p>
-                <a href={order.payment.solanaPayUrl} className="btn-secondary mt-3 inline-flex px-5 py-2 text-sm">
-                  <Wallet className="h-4 w-4" /> Open in wallet app
-                </a>
 
                 <div className="mt-4 flex flex-col items-center gap-2">
                   <span className="text-xs text-muted-foreground">or send manually to</span>
