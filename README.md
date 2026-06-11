@@ -63,3 +63,4 @@ The boost-to-score multiplier is `boostFactor()` in `server/marketdata.ts`.
 
 `public/logo.svg` is a hand-made stand-in. Drop your real PNG at `public/logo.png` and swap
 the references, or just replace the contents of `logo.svg`.
+<img width="512" height="512" alt="2wdadawdawdawdQ" src="https://github.com/user-attachments/assets/a58c059e-78f4-49f3-a83b-cc15aa926c5d" />
