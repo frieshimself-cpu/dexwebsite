@@ -454,7 +454,7 @@ export default function BoostModal() {
                   transition={{ type: "spring", damping: 12 }}
                   className="mx-auto mb-4 w-fit"
                 >
-                  <img src="/logo.svg" alt="" className="h-24 w-24 drop-shadow-[0_0_40px_rgba(200,241,53,0.45)]" />
+                  <img src="/logo.png" alt="" className="h-24 w-24 rounded-full drop-shadow-[0_0_40px_rgba(200,241,53,0.45)]" />
                 </motion.div>
                 <h2 className="font-display text-2xl font-bold">
                   {order.type === "boost" ? (

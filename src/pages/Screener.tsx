@@ -126,9 +126,9 @@ export default function Screener() {
       {!data ? (
         <div className="card-surface flex h-72 items-center justify-center">
           <motion.img
-            src="/logo.svg"
+            src="/logo.png"
             alt=""
-            className="h-16 w-16"
+            className="h-16 w-16 rounded-full"
             animate={{ y: [0, -12, 0], rotate: [-4, 4, -4] }}
             transition={{ repeat: Infinity, duration: 1.6 }}
           />

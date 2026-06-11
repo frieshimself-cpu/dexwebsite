@@ -1,4 +1,17 @@
+import fs from "node:fs";
+import path from "node:path";
 import type { BoostPackage } from "../shared/types.ts";
+
+// Minimal .env loader — real env vars (e.g. from a host dashboard) win.
+const envPath = path.resolve(process.cwd(), ".env");
+if (fs.existsSync(envPath)) {
+  for (const line of fs.readFileSync(envPath, "utf8").split("\n")) {
+    const m = line.match(/^\s*([A-Za-z0-9_]+)\s*=\s*(.*?)\s*$/);
+    if (m && !line.trim().startsWith("#") && process.env[m[1]] === undefined) {
+      process.env[m[1]] = m[2];
+    }
+  }
+}
 
 export const CONFIG = {
   port: Number(process.env.PORT || 8787),

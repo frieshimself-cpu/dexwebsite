@@ -37,7 +37,7 @@ export default function Navbar() {
       <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-5">
         {/* brand */}
         <Link to="/" className="flex items-center gap-2" onClick={() => setOpen(false)}>
-          <img src="/logo.svg" alt="" className="h-8 w-8" />
+          <img src="/logo.png" alt="" className="h-8 w-8 rounded-full" />
           <span className="font-display text-lg font-semibold tracking-tight">
             MemeRocket<span className="text-primary">.</span>
           </span>

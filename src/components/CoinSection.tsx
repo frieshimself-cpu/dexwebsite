@@ -30,9 +30,9 @@ export default function CoinSection() {
         className="relative overflow-hidden rounded-3xl border border-rocket-purple/40 bg-gradient-to-br from-rocket-purple/20 via-background to-rocket-pink/10 p-10 text-center md:p-14"
       >
         <img
-          src="/logo.svg"
+          src="/logo.png"
           alt=""
-          className="mx-auto mb-6 h-24 w-24 animate-floaty drop-shadow-[0_0_30px_rgba(124,92,255,0.5)]"
+          className="mx-auto mb-6 h-24 w-24 animate-floaty rounded-full ring-2 ring-rocket-purple/50 drop-shadow-[0_0_30px_rgba(124,92,255,0.5)]"
         />
         <span className="pill mb-4">
           <Rocket className="h-3.5 w-3.5 text-rocket-pink" />

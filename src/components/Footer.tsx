@@ -7,7 +7,7 @@ export default function Footer() {
         <div className="flex flex-col items-start justify-between gap-8 md:flex-row">
           <div className="max-w-sm">
             <div className="flex items-center gap-2">
-              <img src="/logo.svg" alt="" className="h-7 w-7" />
+              <img src="/logo.png" alt="" className="h-7 w-7 rounded-full" />
               <span className="font-display text-lg font-semibold">
                 MemeRocket<span className="text-primary">.</span>
               </span>

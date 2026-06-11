@@ -59,8 +59,9 @@ The boost-to-score multiplier is `boostFactor()` in `server/marketdata.ts`.
 
 `GET /api/admin/orders` with header `x-admin-key: $ADMIN_KEY` lists all orders/payments.
 
-## Logo
+---
 
-`public/logo.svg` is a hand-made stand-in. Drop your real PNG at `public/logo.png` and swap
-the references, or just replace the contents of `logo.svg`.
-<img width="512" height="512" alt="2wdadawdawdawdQ" src="https://github.com/user-attachments/assets/a58c059e-78f4-49f3-a83b-cc15aa926c5d" />
+<p align="center">
+  <img src="public/logo.png" alt="MemeRocket logo" width="220" />
+</p>
+<p align="center"><b>MemeRocket</b> — strap a rocket to your token 🚀</p>
