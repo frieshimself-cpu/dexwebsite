@@ -1,0 +1,83 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 240 67% 1%;
+  --foreground: 0 0% 100%;
+  --primary: 73 98% 57%;
+  --primary-foreground: 240 67% 1%;
+  --secondary: 0 0% 100%;
+  --secondary-foreground: 240 67% 1%;
+  --muted: 240 10% 12%;
+  --muted-foreground: 0 0% 82%;
+  --border: 0 0% 100%;
+}
+
+* {
+  border-color: hsl(var(--border) / 0.1);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-background text-foreground font-body antialiased;
+  overflow-x: hidden;
+}
+
+::selection {
+  background: hsl(var(--primary) / 0.8);
+  color: hsl(var(--primary-foreground));
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: hsl(var(--background));
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted));
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--primary) / 0.5);
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-primary text-primary-foreground font-semibold transition hover:brightness-110 active:scale-[0.98];
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-secondary text-secondary-foreground font-semibold transition hover:brightness-90 active:scale-[0.98];
+  }
+  .pill {
+    @apply inline-flex items-center gap-2 rounded-full border border-border px-4 py-1.5 text-sm text-muted-foreground;
+  }
+  .card-surface {
+    @apply rounded-2xl border border-border bg-muted/40 backdrop-blur-sm;
+  }
+  .text-gradient {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(100deg, #fff 20%, hsl(var(--primary)) 50%, #7c5cff 85%);
+  }
+  .gold-gradient {
+    background-image: linear-gradient(100deg, #ffd24a, #ffaa00 40%, #ffe9a3 60%, #b8860b);
+  }
+}
+
+.golden-row {
+  background: linear-gradient(90deg, rgba(255, 210, 74, 0.12), rgba(255, 170, 0, 0.04) 55%, transparent);
+}
+
+.shimmer-text {
+  background: linear-gradient(110deg, #ffd24a 30%, #fff6d8 45%, #ffd24a 60%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer 3s linear infinite;
+}

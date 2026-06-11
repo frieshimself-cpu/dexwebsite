@@ -1,0 +1,38 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="mrBody" x1="14" y1="50" x2="52" y2="10" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ff5cd2"/>
+      <stop offset="0.3" stop-color="#7c5cff"/>
+      <stop offset="0.65" stop-color="#38bdf8"/>
+      <stop offset="1" stop-color="#2b2e8f"/>
+    </linearGradient>
+    <linearGradient id="mrFin" x1="10" y1="56" x2="34" y2="30" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#3b1d75"/>
+      <stop offset="0.5" stop-color="#7c5cff"/>
+      <stop offset="1" stop-color="#38bdf8"/>
+    </linearGradient>
+    <linearGradient id="mrFlame" x1="8" y1="58" x2="24" y2="42" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#c8f135"/>
+      <stop offset="0.5" stop-color="#ff9ad5"/>
+      <stop offset="1" stop-color="#7c5cff"/>
+    </linearGradient>
+    <radialGradient id="mrGlass" cx="0.35" cy="0.35" r="0.8">
+      <stop offset="0" stop-color="#e9f9ff"/>
+      <stop offset="0.55" stop-color="#7cc7ff"/>
+      <stop offset="1" stop-color="#2b2e8f"/>
+    </radialGradient>
+  </defs>
+  <!-- exhaust flame -->
+  <path d="M19.5 44.5C15 49 12.5 55.5 12 60c4.5-.5 11-3 15.5-7.5 1.8-1.8 1.6-5.4-.7-7.7s-5.5-2.1-7.3-.3z" fill="url(#mrFlame)"/>
+  <!-- lower fin -->
+  <path d="M24 38c-5 1-10.5 5-13 9.5 4 1.5 10 1.5 15-1z" fill="url(#mrFin)"/>
+  <!-- upper fin -->
+  <path d="M38 24c-1 5-5 10.5-9.5 13-1.5-4-1.5-10 1-15z" fill="url(#mrFin)" transform="rotate(90 38 30.5)"/>
+  <!-- body -->
+  <path d="M25.5 38.5C20 33 21.5 22.5 29 15 36.5 7.5 48.5 4.5 56 6c1.5 7.5-1.5 19.5-9 27-7.5 7.5-18 9-21.5 5.5z" fill="url(#mrBody)"/>
+  <!-- window ring -->
+  <circle cx="41" cy="21" r="6.5" fill="#1c1650"/>
+  <circle cx="41" cy="21" r="4.5" fill="url(#mrGlass)"/>
+  <!-- shine -->
+  <path d="M29 15c4-4 9.5-7 15-8.2-7 .6-13.6 3.7-18.4 8.6C20.8 20.2 18 27 18.4 33c.8-6 4.6-12.4 10.6-18z" fill="#ffffff" opacity="0.35"/>
+</svg>
