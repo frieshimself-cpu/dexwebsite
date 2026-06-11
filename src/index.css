@@ -32,6 +32,32 @@ body {
   color: hsl(var(--primary-foreground));
 }
 
+:focus-visible {
+  outline: 2px solid hsl(var(--primary) / 0.8);
+  outline-offset: 2px;
+}
+
+/* price cells flash when a refresh changes the value */
+@keyframes cell-flash-up {
+  0% { background-color: hsl(var(--primary) / 0.25); }
+  100% { background-color: transparent; }
+}
+@keyframes cell-flash-down {
+  0% { background-color: rgb(251 113 133 / 0.25); }
+  100% { background-color: transparent; }
+}
+.flash-up { animation: cell-flash-up 1.2s ease-out; }
+.flash-down { animation: cell-flash-down 1.2s ease-out; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  html { scroll-behavior: auto; }
+}
+
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;

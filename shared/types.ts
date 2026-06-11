@@ -93,7 +93,11 @@ export interface TokenLookup {
   marketCapUsd: number | null;
   liquidityUsd: number | null;
   volume24h: number | null;
+  change5m: number | null;
+  change1h: number | null;
+  change6h: number | null;
   change24h: number | null;
+  txns24h: number | null;
   pairAddress: string | null;
   chain: string;
   activeBoosts: number;
@@ -103,4 +107,28 @@ export interface SiteStats {
   boostsSold: number;
   tokensBoosted: number;
   adsRun: number;
+}
+
+export interface AdminTotals {
+  paidCount: number;
+  pendingCount: number;
+  totalUsd: number;
+  totalSol: number;
+}
+
+export interface AdminBoostRow {
+  id: number;
+  tokenAddress: string;
+  tokenSymbol: string | null;
+  boosts: number;
+  golden: boolean;
+  activatedAt: number;
+  expiresAt: number;
+}
+
+export interface AdminOverview {
+  totals: AdminTotals;
+  orders: OrderPublic[];
+  activeBoosts: AdminBoostRow[];
+  activeAds: ActiveAd[];
 }

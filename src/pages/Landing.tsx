@@ -4,10 +4,13 @@ import { motion } from "framer-motion";
 import { ArrowRight, Flame } from "lucide-react";
 import Hero from "../components/Hero";
 import TickerMarquee from "../components/TickerMarquee";
+import StatsStrip from "../components/StatsStrip";
 import Features from "../components/Features";
 import HowItWorks from "../components/HowItWorks";
+import Comparison from "../components/Comparison";
 import Pricing from "../components/Pricing";
 import CoinSection from "../components/CoinSection";
+import CTASection from "../components/CTASection";
 import Starfield from "../components/Starfield";
 import TokenTable from "../components/TokenTable";
 import type { TrendingToken } from "@shared/types";
@@ -46,6 +49,7 @@ export default function Landing() {
     <main>
       <Hero />
       <TickerMarquee />
+      <StatsStrip />
 
       {/* trending preview */}
       <section className="relative mx-auto max-w-7xl px-5 py-24">
@@ -85,6 +89,7 @@ export default function Landing() {
 
       <Features />
       <HowItWorks />
+      <Comparison />
       <Pricing />
       <CoinSection />
 
@@ -117,6 +122,8 @@ export default function Landing() {
           ))}
         </div>
       </section>
+
+      <CTASection />
     </main>
   );
 }

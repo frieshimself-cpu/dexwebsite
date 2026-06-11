@@ -2,24 +2,35 @@ import express from "express";
 import cors from "cors";
 import path from "node:path";
 import fs from "node:fs";
+import crypto from "node:crypto";
 import { CONFIG, BOOST_PACKAGES, PUMP_FUN_URL, getPackage } from "./config.ts";
 import {
+  db,
   newId,
   insertOrder,
   getOrder,
   getActiveAds,
+  getActiveBoosts,
   getStats,
   getAllOrders,
-  getActiveBoostCountFor,
+  getPaidTotals,
   type OrderRow,
 } from "./db.ts";
 import { getSolPriceUsd, quotePayment, pollPayments, quickCheckOrder, verifyOrderBySignature } from "./solana.ts";
 import { getTrending, lookupToken } from "./marketdata.ts";
-import type { OrderPublic, SiteConfig } from "../shared/types.ts";
+import type { AdminOverview, OrderPublic, SiteConfig } from "../shared/types.ts";
 
 const app = express();
+// Railway/Render/Fly sit behind one proxy hop — needed for real client IPs.
+app.set("trust proxy", 1);
 app.use(cors());
 app.use(express.json({ limit: "64kb" }));
+app.use((_req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  next();
+});
 
 /* ------------------------------ tiny rate limiter ------------------------------ */
 
@@ -40,6 +51,7 @@ function rateLimit(max: number, windowMs: number) {
 setInterval(() => {
   const now = Date.now();
   for (const [k, v] of hits) if (v.resetAt < now) hits.delete(k);
+  for (const [id, t] of lastQuickCheck) if (now - t > 30 * 60_000) lastQuickCheck.delete(id);
 }, 60_000).unref();
 
 /* ----------------------------------- helpers ----------------------------------- */
@@ -125,8 +137,8 @@ app.get("/api/ads/active", (_req, res) => {
 
 app.get("/api/stats", (_req, res) => res.json(getStats()));
 
-const isHttpUrl = (s: unknown): s is string =>
-  typeof s === "string" && /^https?:\/\/.{3,500}$/.test(s);
+const isHttpsUrl = (s: unknown): s is string =>
+  typeof s === "string" && /^https:\/\/.{3,500}$/.test(s);
 
 app.post("/api/orders", rateLimit(10, 60_000), async (req, res) => {
   try {
@@ -151,8 +163,8 @@ app.post("/api/orders", rateLimit(10, 60_000), async (req, res) => {
       const days = Math.floor(Number(req.body.adDays));
       if (!Number.isFinite(days) || days < 1 || days > 30)
         return res.status(400).json({ error: "Ad duration must be 1-30 days" });
-      if (!isHttpUrl(req.body.adImageUrl)) return res.status(400).json({ error: "Ad image must be a valid URL" });
-      if (!isHttpUrl(req.body.adLinkUrl)) return res.status(400).json({ error: "Ad link must be a valid URL" });
+      if (!isHttpsUrl(req.body.adImageUrl)) return res.status(400).json({ error: "Ad image must be an https:// URL" });
+      if (!isHttpsUrl(req.body.adLinkUrl)) return res.status(400).json({ error: "Ad link must be an https:// URL" });
       adDays = days;
       adImageUrl = req.body.adImageUrl;
       adLinkUrl = req.body.adLinkUrl;
@@ -220,11 +232,11 @@ app.post("/api/orders/:id/verify", rateLimit(12, 60_000), async (req, res) => {
   const order = getOrder(req.params.id);
   if (!order) return res.status(404).json({ error: "Order not found" });
   if (order.status === "paid") return res.json({ order: toPublicOrder(order) });
-  if (order.status === "expired") return res.status(410).json({ error: "Order expired — start a new one" });
 
   const signature = String(req.body?.signature ?? "").trim();
   if (!signature) return res.status(400).json({ error: "Paste the transaction signature" });
 
+  // Expired orders are still verifiable — if the SOL really arrived, honor it.
   const ok = await verifyOrderBySignature(order, signature);
   if (!ok)
     return res.status(400).json({
@@ -235,10 +247,49 @@ app.post("/api/orders/:id/verify", rateLimit(12, 60_000), async (req, res) => {
 
 /* ------------------------------------ admin ------------------------------------ */
 
+function isAdmin(req: express.Request): boolean {
+  const given = String(req.headers["x-admin-key"] ?? "");
+  if (!CONFIG.adminKey || !given) return false;
+  const a = crypto.createHash("sha256").update(given).digest();
+  const b = crypto.createHash("sha256").update(CONFIG.adminKey).digest();
+  return crypto.timingSafeEqual(a, b);
+}
+
 app.get("/api/admin/orders", (req, res) => {
-  if (!CONFIG.adminKey || req.headers["x-admin-key"] !== CONFIG.adminKey)
-    return res.status(401).json({ error: "unauthorized" });
+  if (!isAdmin(req)) return res.status(401).json({ error: "unauthorized" });
   res.json({ orders: getAllOrders() });
+});
+
+app.get("/api/admin/overview", (req, res) => {
+  if (!isAdmin(req)) return res.status(401).json({ error: "unauthorized" });
+  const now = Date.now();
+  const totals = getPaidTotals();
+  const overview: AdminOverview = {
+    totals: {
+      paidCount: totals.paidCount,
+      pendingCount: totals.pendingCount,
+      totalUsd: totals.totalUsd,
+      totalSol: totals.totalLamports / 1e9,
+    },
+    orders: getAllOrders(300).map(toPublicOrder),
+    activeBoosts: getActiveBoosts(now).map((b) => ({
+      id: b.id,
+      tokenAddress: b.token_address,
+      tokenSymbol: b.token_symbol,
+      boosts: b.boosts,
+      golden: b.golden === 1,
+      activatedAt: b.activated_at,
+      expiresAt: b.expires_at,
+    })),
+    activeAds: getActiveAds(now).map((a) => ({
+      id: a.id,
+      name: a.name,
+      imageUrl: a.image_url,
+      linkUrl: a.link_url,
+      expiresAt: a.expires_at,
+    })),
+  };
+  res.json(overview);
 });
 
 /* -------------------------------- static frontend ------------------------------ */
@@ -255,8 +306,20 @@ setInterval(() => {
   pollPayments().catch((e) => console.error("[pay] poll error:", e));
 }, 25_000).unref();
 
-app.listen(CONFIG.port, () => {
+const server = app.listen(CONFIG.port, () => {
   console.log(`🚀 MemeRocket server on http://localhost:${CONFIG.port}`);
   console.log(`   receive wallet: ${CONFIG.receiveWallet}`);
   console.log(`   rpc: ${CONFIG.rpcUrl}`);
 });
+
+// Finish in-flight requests and flush SQLite cleanly on redeploys.
+for (const sig of ["SIGTERM", "SIGINT"] as const) {
+  process.on(sig, () => {
+    console.log(`[shutdown] ${sig} received`);
+    server.close(() => {
+      db.close();
+      process.exit(0);
+    });
+    setTimeout(() => process.exit(0), 8000).unref();
+  });
+}

@@ -38,6 +38,14 @@ export default function Footer() {
               <a href="/#faq" className="text-muted-foreground transition hover:text-foreground">
                 FAQ
               </a>
+              <a
+                href="https://pump.fun/coin/7cpPfNJVj7igL41C2mZmWS9yLHV7rebpcPaLwHZpump"
+                target="_blank"
+                rel="noreferrer"
+                className="text-muted-foreground transition hover:text-foreground"
+              >
+                $ROCKET on pump.fun ↗
+              </a>
             </div>
           </div>
         </div>

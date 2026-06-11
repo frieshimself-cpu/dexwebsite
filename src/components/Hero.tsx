@@ -1,8 +1,8 @@
-import { useEffect, useRef } from "react";
-import { ArrowUpRight, Sparkles } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ArrowUpRight, ChevronDown, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
 import { useBoostModal } from "../context/BoostModalContext";
+import Starfield from "./Starfield";
 
 const VIDEO_URL =
   "https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260221_085953_8463b46e-ba85-4bb7-912a-1feaf346e970.mp4";
@@ -15,7 +15,7 @@ const FADE_IN_DURATION = 1.0;
 
 export default function Hero() {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const navigate = useNavigate();
+  const [videoFailed, setVideoFailed] = useState(false);
   const { openBoost } = useBoostModal();
 
   useEffect(() => {
@@ -50,15 +50,24 @@ export default function Hero() {
 
   return (
     <section className="relative h-screen w-full overflow-hidden bg-background">
-      <video
-        ref={videoRef}
-        src={VIDEO_URL}
-        autoPlay
-        loop
-        muted
-        playsInline
-        className="absolute inset-0 h-full w-full object-cover"
-      />
+      {videoFailed ? (
+        // graceful fallback if the CDN video can't load
+        <div className="absolute inset-0">
+          <div className="absolute inset-0 bg-[radial-gradient(60%_50%_at_50%_8%,rgba(124,92,255,0.28),transparent),radial-gradient(45%_40%_at_82%_72%,rgba(200,241,53,0.12),transparent),radial-gradient(50%_45%_at_12%_78%,rgba(255,92,210,0.16),transparent)]" />
+          <Starfield />
+        </div>
+      ) : (
+        <video
+          ref={videoRef}
+          src={VIDEO_URL}
+          autoPlay
+          loop
+          muted
+          playsInline
+          onError={() => setVideoFailed(true)}
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+      )}
 
       {/* bottom-aligned content */}
       <div className="absolute inset-x-0 bottom-0 flex justify-center pb-[100px]">
@@ -109,6 +118,19 @@ export default function Hero() {
           </motion.div>
         </div>
       </div>
+
+      {/* scroll cue */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1.4 }}
+        className="absolute bottom-6 left-1/2 -translate-x-1/2"
+        aria-hidden
+      >
+        <motion.div animate={{ y: [0, 7, 0] }} transition={{ repeat: Infinity, duration: 1.8 }}>
+          <ChevronDown className="h-5 w-5 text-muted-foreground/70" />
+        </motion.div>
+      </motion.div>
     </section>
   );
 }

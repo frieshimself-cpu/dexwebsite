@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Search, Zap, Flame, RefreshCw, WifiOff } from "lucide-react";
-import type { TrendingResponse } from "@shared/types";
+import type { TrendingResponse, TrendingToken } from "@shared/types";
 import { api } from "../lib/api";
-import TokenTable from "../components/TokenTable";
+import TokenTable, { type SortKey, type SortState } from "../components/TokenTable";
 import AdBanner from "../components/AdBanner";
+import OfficialCoin from "../components/OfficialCoin";
 import { useBoostModal } from "../context/BoostModalContext";
 
 type Tab = "trending" | "boosted";
@@ -14,12 +15,25 @@ export default function Screener() {
   const [tab, setTab] = useState<Tab>("trending");
   const [query, setQuery] = useState("");
   const [refreshing, setRefreshing] = useState(false);
+  const [sort, setSort] = useState<SortState>({ key: "score", dir: -1 });
+  const [flash, setFlash] = useState<Map<string, "up" | "down">>(new Map());
+  const [, setTick] = useState(0);
+  const prevPrices = useRef<Map<string, number>>(new Map());
   const { openBoost } = useBoostModal();
 
   const load = async () => {
     setRefreshing(true);
     try {
-      setData(await api.trending());
+      const fresh = await api.trending();
+      // flash price cells that moved since the last refresh
+      const flashes = new Map<string, "up" | "down">();
+      for (const t of fresh.tokens) {
+        const prev = prevPrices.current.get(t.address);
+        if (prev != null && prev !== t.priceUsd) flashes.set(t.address, t.priceUsd > prev ? "up" : "down");
+      }
+      prevPrices.current = new Map(fresh.tokens.map((t) => [t.address, t.priceUsd]));
+      setFlash(flashes);
+      setData(fresh);
     } catch {
       // keep last data
     } finally {
@@ -33,6 +47,15 @@ export default function Screener() {
     return () => clearInterval(t);
   }, []);
 
+  // re-render every second so "updated Xs ago" ticks
+  useEffect(() => {
+    const t = setInterval(() => setTick((n) => n + 1), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  const onSort = (key: SortKey) =>
+    setSort((s) => (s.key === key ? { key, dir: s.dir === -1 ? 1 : -1 } : { key, dir: -1 }));
+
   const tokens = useMemo(() => {
     let list = data?.tokens ?? [];
     if (tab === "boosted") list = list.filter((t) => t.activeBoosts > 0);
@@ -45,8 +68,15 @@ export default function Screener() {
           t.address.toLowerCase() === q
       );
     }
-    return list;
-  }, [data, tab, query]);
+    const sorted = [...list].sort((a, b) => {
+      const av = a[sort.key] as number;
+      const bv = b[sort.key] as number;
+      return sort.dir === -1 ? bv - av : av - bv;
+    });
+    return sorted;
+  }, [data, tab, query, sort]);
+
+  const updatedAgo = data ? Math.max(0, Math.round((Date.now() - data.updatedAt) / 1000)) : null;
 
   return (
     <main className="mx-auto min-h-screen max-w-7xl px-5 pb-20 pt-24">
@@ -62,7 +92,7 @@ export default function Screener() {
                       <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-60" />
                       <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
                     </span>
-                    LIVE
+                    LIVE{updatedAgo != null && ` · ${updatedAgo}s ago`}
                   </>
                 ) : (
                   <>
@@ -82,6 +112,7 @@ export default function Screener() {
         </button>
       </div>
 
+      <OfficialCoin />
       <AdBanner />
 
       <div className="mb-4 flex flex-wrap items-center gap-3">
@@ -111,7 +142,7 @@ export default function Screener() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search symbol, name or CA"
-            className="w-64 rounded-full border border-border bg-muted/30 py-2 pl-9 pr-4 text-sm outline-none transition focus:border-primary/50"
+            className="w-64 max-w-[70vw] rounded-full border border-border bg-muted/30 py-2 pl-9 pr-4 text-sm outline-none transition focus:border-primary/50"
           />
         </div>
         <button
@@ -146,7 +177,7 @@ export default function Screener() {
           )}
         </div>
       ) : (
-        <TokenTable tokens={tokens} />
+        <TokenTable tokens={tokens} sort={sort} onSort={onSort} flash={flash} />
       )}
     </main>
   );

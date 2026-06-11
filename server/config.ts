@@ -24,6 +24,9 @@ export const CONFIG = {
   pumpFunCA: "7cpPfNJVj7igL41C2mZmWS9yLHV7rebpcPaLwHZpump",
   boostDurationHours: 24,
   orderTtlMinutes: 60,
+  // Payments are still honored this long after the quote "expires" — covers
+  // people who pay at the last second or whose tx confirms late.
+  orderGraceHours: 6,
   adPricePerDay: 25,
 };
 

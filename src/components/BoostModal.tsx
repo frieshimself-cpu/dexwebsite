@@ -14,6 +14,8 @@ import {
   Rocket,
   ChevronDown,
   ExternalLink,
+  Wallet,
+  Share2,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type { OrderPublic, SiteConfig, TokenLookup } from "@shared/types";
@@ -97,6 +99,13 @@ export default function BoostModal() {
     }, 450);
     return () => clearTimeout(t);
   }, [ca]);
+
+  // tick the expiry countdown every second while paying
+  useEffect(() => {
+    if (step !== "pay") return;
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [step]);
 
   // poll order status while paying
   useEffect(() => {
@@ -385,6 +394,9 @@ export default function BoostModal() {
                 <p className="mt-2 text-xs text-muted-foreground">
                   Scan with Phantom / Solflare / any Solana Pay wallet
                 </p>
+                <a href={order.payment.solanaPayUrl} className="btn-secondary mt-3 inline-flex px-5 py-2 text-sm">
+                  <Wallet className="h-4 w-4" /> Open in wallet app
+                </a>
 
                 <div className="mt-4 flex flex-col items-center gap-2">
                   <span className="text-xs text-muted-foreground">or send manually to</span>
@@ -482,7 +494,7 @@ export default function BoostModal() {
                     View transaction <ExternalLink className="h-3 w-3" />
                   </a>
                 )}
-                <div className="mt-6 flex justify-center gap-3">
+                <div className="mt-6 flex flex-wrap justify-center gap-3">
                   <button
                     onClick={() => {
                       modal.close();
@@ -493,6 +505,18 @@ export default function BoostModal() {
                     <Rocket className="h-4 w-4" />
                     {order.type === "boost" ? "Watch it climb" : "See it live"}
                   </button>
+                  {order.type === "boost" && (
+                    <a
+                      href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(
+                        `Just strapped a ${order.boosts}x rocket to $${order.tokenSymbol ?? "my token"} on MemeRocket 🚀⚡`
+                      )}&url=${encodeURIComponent(`${window.location.origin}/token/${order.tokenAddress}`)}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="btn-secondary px-6 py-3 text-sm"
+                    >
+                      <Share2 className="h-4 w-4" /> Share on 𝕏
+                    </a>
+                  )}
                   <button onClick={modal.close} className="btn-secondary px-6 py-3 text-sm">
                     Done
                   </button>

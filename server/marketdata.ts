@@ -22,9 +22,14 @@ function baseScore(t: { volume24h: number; txns24h: number; change24h: number; l
   );
 }
 
-/** Paid boosts multiply a token's trending score — same model as the big screeners. */
+/**
+ * Paid boosts multiply a token's trending score — same model as the big
+ * screeners. Tuned so a 10x lifts a real token near the top, a dead token
+ * needs ~100x to dominate, and a 500x golden rocket is untouchable:
+ * 10x→1.5, 30x→2.5, 50x→3.5, 100x→6, 500x→26.
+ */
 function boostFactor(activeBoosts: number): number {
-  return 1 + activeBoosts * 0.15;
+  return 1 + activeBoosts * 0.05;
 }
 
 /* ------------------------------ GeckoTerminal feed ----------------------------- */
@@ -168,7 +173,11 @@ export async function lookupToken(address: string): Promise<TokenLookup> {
       marketCapUsd: null,
       liquidityUsd: null,
       volume24h: null,
+      change5m: null,
+      change1h: null,
+      change6h: null,
       change24h: null,
+      txns24h: null,
       pairAddress: null,
       chain: "solana",
       activeBoosts,
@@ -184,7 +193,11 @@ export async function lookupToken(address: string): Promise<TokenLookup> {
     marketCapUsd: raw.marketCapUsd,
     liquidityUsd: raw.liquidityUsd,
     volume24h: raw.volume24h,
+    change5m: raw.change5m,
+    change1h: raw.change1h,
+    change6h: raw.change6h,
     change24h: raw.change24h,
+    txns24h: raw.txns24h,
     pairAddress: raw.pairAddress,
     chain: raw.chain,
     activeBoosts,

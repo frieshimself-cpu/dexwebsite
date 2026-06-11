@@ -57,7 +57,18 @@ The boost-to-score multiplier is `boostFactor()` in `server/marketdata.ts`.
 
 ## Admin
 
-`GET /api/admin/orders` with header `x-admin-key: $ADMIN_KEY` lists all orders/payments.
+Open **`/admin`** on the site and enter your `ADMIN_KEY` to see revenue, orders, active
+boosts and ads (auto-refreshes). The raw APIs are `GET /api/admin/overview` and
+`GET /api/admin/orders` with header `x-admin-key: $ADMIN_KEY`.
+
+## Payment edge cases handled
+
+- Solana Pay reference keys for instant matching, plus amount-matching for plain wallet
+  transfers, plus manual verify-by-signature.
+- Quotes "expire" after 60 min, but payments are still honored for 6 more hours if the
+  SOL verifiably arrived (late payers never lose money).
+- Each pending order gets a unique lamport amount (collision-proof dust sweep).
+- Used transaction signatures can never be replayed across orders.
 
 ---
 

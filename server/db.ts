@@ -141,15 +141,28 @@ export function signatureUsed(signature: string): boolean {
   return !!row;
 }
 
-export function expireStaleOrders(now: number): void {
-  db.prepare("UPDATE orders SET status = 'expired' WHERE status = 'pending' AND expires_at < ?").run(now);
+/** Orders flip to 'expired' only after the quote TTL plus a grace window. */
+export function expireStaleOrders(now: number, graceMs: number): void {
+  db.prepare("UPDATE orders SET status = 'expired' WHERE status = 'pending' AND expires_at + ? < ?").run(graceMs, now);
 }
 
-/** Mark paid + activate the boost or ad, atomically. */
+/** Pending orders that are still worth checking the chain for. */
+export function getVerifiableOrders(now: number, graceMs: number): OrderRow[] {
+  return db
+    .prepare("SELECT * FROM orders WHERE status = 'pending' AND expires_at + ? > ? ORDER BY created_at ASC")
+    .all(graceMs, now) as OrderRow[];
+}
+
+/**
+ * Mark paid + activate the boost or ad, atomically. Also settles 'expired'
+ * orders — if the money verifiably arrived, the purchase is honored.
+ */
 export function settleOrder(order: OrderRow, signature: string, now: number, boostDurationHours: number): void {
   const tx = db.transaction(() => {
     const res = db
-      .prepare("UPDATE orders SET status = 'paid', signature = ?, paid_at = ? WHERE id = ? AND status = 'pending'")
+      .prepare(
+        "UPDATE orders SET status = 'paid', signature = ?, paid_at = ? WHERE id = ? AND status IN ('pending', 'expired')"
+      )
       .run(signature, now, order.id);
     if (res.changes === 0) return; // already settled by another path
 
@@ -209,4 +222,14 @@ export function getStats(): { boostsSold: number; tokensBoosted: number; adsRun:
 
 export function getAllOrders(limit = 200): OrderRow[] {
   return db.prepare("SELECT * FROM orders ORDER BY created_at DESC LIMIT ?").all(limit) as OrderRow[];
+}
+
+export function getPaidTotals(): { paidCount: number; pendingCount: number; totalUsd: number; totalLamports: number } {
+  const paid = db
+    .prepare(
+      "SELECT COUNT(*) AS n, COALESCE(SUM(usd),0) AS usd, COALESCE(SUM(amount_lamports),0) AS lamports FROM orders WHERE status = 'paid'"
+    )
+    .get() as { n: number; usd: number; lamports: number };
+  const pending = db.prepare("SELECT COUNT(*) AS n FROM orders WHERE status = 'pending'").get() as { n: number };
+  return { paidCount: paid.n, pendingCount: pending.n, totalUsd: paid.usd, totalLamports: paid.lamports };
 }

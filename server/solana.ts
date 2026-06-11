@@ -7,13 +7,16 @@ import {
 } from "@solana/web3.js";
 import { CONFIG } from "./config.ts";
 import {
-  getPendingOrders,
+  getVerifiableOrders,
   expireStaleOrders,
   settleOrder,
   signatureUsed,
   lamportsAmountInUse,
   type OrderRow,
 } from "./db.ts";
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const GRACE_MS = CONFIG.orderGraceHours * 3600_000;
 
 const connection = new Connection(CONFIG.rpcUrl, "confirmed");
 const recipient = new PublicKey(CONFIG.receiveWallet);
@@ -42,6 +45,15 @@ export async function getSolPriceUsd(): Promise<number> {
       });
       const j = (await r.json()) as { data?: { amount?: string } };
       const p = Number(j.data?.amount);
+      if (!p || p <= 0) throw new Error("no price");
+      return p;
+    },
+    async () => {
+      const r = await fetch("https://api.binance.com/api/v3/ticker/price?symbol=SOLUSDT", {
+        signal: AbortSignal.timeout(6000),
+      });
+      const j = (await r.json()) as { price?: string };
+      const p = Number(j.price);
       if (!p || p <= 0) throw new Error("no price");
       return p;
     },
@@ -78,10 +90,14 @@ export interface PaymentQuote {
 export async function quotePayment(usd: number, label: string): Promise<PaymentQuote> {
   const price = await getSolPriceUsd();
   let lamports = Math.round((usd / price) * LAMPORTS_PER_SOL);
-  // round to a clean 10k-lamport boundary then add unique dust (1k..999k lamports = ~0.000001..0.001 SOL)
+  // Round to a clean 10k-lamport boundary, then add unique "dust"
+  // (1k..999k lamports = 0.000001..0.000999 SOL) so each pending order has a
+  // distinct on-chain amount. Random first, then a deterministic sweep so a
+  // collision can never silently produce a duplicate amount.
   lamports = Math.ceil(lamports / 10_000) * 10_000;
-  for (let i = 0; i < 50; i++) {
-    const dust = (Math.floor(Math.random() * 999) + 1) * 1_000;
+  const start = Math.floor(Math.random() * 999) + 1;
+  for (let i = 0; i < 999; i++) {
+    const dust = (((start + i) % 999) + 1) * 1_000;
     if (!lamportsAmountInUse(lamports + dust)) {
       lamports += dust;
       break;
@@ -160,7 +176,8 @@ export async function verifyOrderBySignature(order: OrderRow, signature: string)
 /**
  * Safety net for people who plain-send SOL from any wallet without the
  * reference: scan recent transfers into the receive wallet and match the
- * unique lamport amounts of pending orders.
+ * unique lamport amounts of pending orders. Uses one batched RPC call for
+ * all transactions instead of one per signature.
  */
 async function scanRecipientForPending(pending: OrderRow[]): Promise<void> {
   if (pending.length === 0) return;
@@ -168,19 +185,24 @@ async function scanRecipientForPending(pending: OrderRow[]): Promise<void> {
   for (const o of pending) byAmount.set(o.amount_lamports, o);
 
   try {
-    const sigs = await connection.getSignaturesForAddress(recipient, { limit: 20 });
-    for (const s of sigs) {
-      if (s.err || signatureUsed(s.signature)) continue;
-      const tx = await getParsedTx(s.signature);
-      if (!tx) continue;
+    const sigs = (await connection.getSignaturesForAddress(recipient, { limit: 20 })).filter(
+      (s) => !s.err && !signatureUsed(s.signature)
+    );
+    if (sigs.length === 0) return;
+    const txs = await connection.getParsedTransactions(
+      sigs.map((s) => s.signature),
+      { maxSupportedTransactionVersion: 0, commitment: "confirmed" }
+    );
+    txs.forEach((tx, i) => {
+      if (!tx) return;
       const received = lamportsReceivedBy(tx, recipient);
       const order = byAmount.get(received);
       if (order && order.status === "pending") {
-        settleOrder(order, s.signature, Date.now(), CONFIG.boostDurationHours);
+        settleOrder(order, sigs[i].signature, Date.now(), CONFIG.boostDurationHours);
         byAmount.delete(received);
         console.log(`[pay] settled order ${order.id} via amount-match (${received} lamports)`);
       }
-    }
+    });
   } catch {
     // RPC hiccup — next poll will retry
   }
@@ -193,16 +215,18 @@ export async function pollPayments(): Promise<void> {
   if (polling) return;
   polling = true;
   try {
-    expireStaleOrders(Date.now());
-    const pending = getPendingOrders();
+    const now = Date.now();
+    expireStaleOrders(now, GRACE_MS);
+    const pending = getVerifiableOrders(now, GRACE_MS);
     for (const order of pending) {
       const sig = await verifyByReference(order);
       if (sig) {
         settleOrder(order, sig, Date.now(), CONFIG.boostDurationHours);
         console.log(`[pay] settled order ${order.id} via reference (${sig.slice(0, 16)}…)`);
       }
+      await sleep(250); // be gentle with rate-limited RPCs
     }
-    await scanRecipientForPending(getPendingOrders());
+    await scanRecipientForPending(getVerifiableOrders(Date.now(), GRACE_MS));
   } finally {
     polling = false;
   }

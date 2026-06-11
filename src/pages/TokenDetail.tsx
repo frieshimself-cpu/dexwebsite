@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { ArrowLeft, Zap, Copy, Check, ExternalLink, AlertTriangle } from "lucide-react";
 import type { TokenLookup } from "@shared/types";
 import { api } from "../lib/api";
-import { fmtPct, fmtUsd, shortAddr } from "../lib/format";
+import { compact, fmtPct, fmtUsd, shortAddr } from "../lib/format";
 import { useBoostModal } from "../context/BoostModalContext";
 
 function Stat({ label, value, accent }: { label: string; value: string; accent?: string }) {
@@ -104,7 +104,7 @@ export default function TokenDetail() {
           </div>
 
           {/* stats */}
-          <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
+          <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
             <Stat label="Price" value={fmtUsd(token.priceUsd)} />
             <Stat
               label="24h change"
@@ -114,6 +114,34 @@ export default function TokenDetail() {
             <Stat label="Market cap" value={fmtUsd(token.marketCapUsd)} />
             <Stat label="Liquidity" value={fmtUsd(token.liquidityUsd)} />
           </div>
+
+          {token.found && (
+            <div className="mb-6 flex flex-wrap items-center gap-2">
+              {(
+                [
+                  ["5m", token.change5m],
+                  ["1h", token.change1h],
+                  ["6h", token.change6h],
+                  ["24h", token.change24h],
+                ] as const
+              ).map(([label, v]) => (
+                <span
+                  key={label}
+                  className={`rounded-full border border-border px-3 py-1 font-mono text-xs ${
+                    v == null ? "text-muted-foreground" : v >= 0 ? "text-primary" : "text-rose-400"
+                  }`}
+                >
+                  {label} {fmtPct(v)}
+                </span>
+              ))}
+              <span className="rounded-full border border-border px-3 py-1 font-mono text-xs text-muted-foreground">
+                Txns 24h · {token.txns24h != null ? compact(token.txns24h) : "—"}
+              </span>
+              <span className="rounded-full border border-border px-3 py-1 font-mono text-xs text-muted-foreground">
+                Vol 24h · {fmtUsd(token.volume24h)}
+              </span>
+            </div>
+          )}
 
           {/* chart */}
           {token.pairAddress ? (
