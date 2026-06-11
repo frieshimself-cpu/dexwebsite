@@ -4,19 +4,19 @@ A playful token screener where projects can buy **boosts** to climb the trending
 **banner ads** to get seen — at a fraction of what the big screeners charge ($1 per boost vs
 ~$10 elsewhere). Payments are made in SOL and verified **on-chain, automatically**.
 
-## ⚠️ Security first — read this
+## 🔐 Key security
 
-A wallet **private key was shared in the chat where this project was built. Treat that wallet
-as compromised**:
+This codebase contains **no private keys** and never needs one. The server only knows the
+**public** receive address (`RECEIVE_WALLET`) and *watches* the chain for incoming
+transfers — nothing in this project can move funds, so there is nothing here to steal.
 
-1. Create a brand-new wallet (Phantom → create new account, or `solana-keygen new`).
-2. Move any funds from the old wallet to the new one.
-3. Put the **new public address** in `.env` as `RECEIVE_WALLET`.
-4. Never share a private key with anyone or any website again — receiving payments only
-   requires the *public* address. The private key stays in your wallet app, period.
+Rules to keep it that way:
 
-This codebase contains **no private keys** and never needs one: it only *watches* the chain
-for incoming transfers to your public address.
+1. Never put a private key in `.env`, the code, Railway variables, or anywhere else in
+   this project — no feature will ever require it.
+2. Receiving payments only needs the public address. Private keys stay in your wallet app.
+3. Sweep accumulated funds out of the receive wallet regularly, and rotate to a fresh
+   address by changing `RECEIVE_WALLET` whenever you like — zero code changes needed.
 
 ## What's inside
 
