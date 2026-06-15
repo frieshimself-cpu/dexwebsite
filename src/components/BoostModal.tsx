@@ -331,7 +331,7 @@ export default function BoostModal() {
                 <input
                   value={ca}
                   onChange={(e) => setCa(e.target.value)}
-                  placeholder="e.g. 2AY34MvGec794vB2fRWKwpiGLeHfZ6c2kt2LLbNHpump"
+                  placeholder="e.g. D9Ga24Eqw9Z9hZYxjt5j1x7tG5wLdUryfMNqhxk4pump"
                   spellCheck={false}
                   className="w-full rounded-xl border border-border bg-muted/40 px-4 py-3 font-mono text-sm outline-none transition focus:border-primary/60"
                 />

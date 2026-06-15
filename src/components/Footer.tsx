@@ -39,7 +39,7 @@ export default function Footer() {
                 FAQ
               </a>
               <a
-                href="https://pump.fun/coin/2AY34MvGec794vB2fRWKwpiGLeHfZ6c2kt2LLbNHpump"
+                href="https://pump.fun/coin/D9Ga24Eqw9Z9hZYxjt5j1x7tG5wLdUryfMNqhxk4pump"
                 target="_blank"
                 rel="noreferrer"
                 className="text-muted-foreground transition hover:text-foreground"

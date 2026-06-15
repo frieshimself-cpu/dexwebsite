@@ -21,7 +21,7 @@ export const CONFIG = {
     process.env.RECEIVE_WALLET || "9MD7xLYTTtSCXLpZYmDkQs5h3ZVLBgwLXay6HBZA9Ktf",
   adminKey: process.env.ADMIN_KEY || "",
   solPriceFallback: Number(process.env.SOL_PRICE_FALLBACK || 150),
-  pumpFunCA: "2AY34MvGec794vB2fRWKwpiGLeHfZ6c2kt2LLbNHpump",
+  pumpFunCA: "D9Ga24Eqw9Z9hZYxjt5j1x7tG5wLdUryfMNqhxk4pump",
   boostDurationHours: 24,
   orderTtlMinutes: 60,
   // Payments are still honored this long after the quote "expires" — covers
